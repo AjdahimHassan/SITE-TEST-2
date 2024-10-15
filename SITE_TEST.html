@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse des Ventes - DistriProt</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff; /* Light blue */
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #007BFF; /* Blue */
+            color: #fff;
+            padding: 20px;
+            position: relative;
+        }
+        header h1 {
+            font-size: 48px;
+            margin: 0;
+            text-align: center;
+        }
+        nav {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .menu-icon {
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            background-color: #007BFF;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            list-style: none;
+        }
+        .dropdown-menu li {
+            margin: 10px 0;
+        }
+        .dropdown-menu li a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        .dropdown-menu li a:hover {
+            color: #FFA500; /* Orange hover */
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #007BFF;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+        input[type="file"], input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+        input[type="file"]:hover, input[type="text"]:hover, select:hover {
+            background-color: #ffe5cc; /* Light orange on hover */
+        }
+        button {
+            background-color: #FFA500; /* Orange button */
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #ff8500; /* Darker orange on hover */
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #777;
+        }
+        .result-box {
+            background-color: #f0f8ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Analyse des Ventes - DistriProt</h1>
+    <nav>
+        <span class="menu-icon" onclick="toggleMenu()">☰</span>
+        <ul class="dropdown-menu" id="menu">
+            <li><a href="{{ url_for('index') }}">L'application</a></li>
+            <li><a href="{{ url_for('guide') }}">Guide d'utilisation</a></li>
+            <li><a href="{{ url_for('code') }}">Voir le code Python</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="container">
+    <h1>Formulaire d'analyse</h1>
+    <form id="machineForm" action="{{ url_for('traiter_donnees') }}" method="POST" enctype="multipart/form-data">
+        <label for="telemetrie">Télécharger le fichier de télémétrie :</label>
+        <input type="file" id="telemetrie" name="fichier_telemetrie" accept=".xlsx" required>
+
+        <label for="machines">Télécharger le fichier des machines complètes (CSV Microsoft) (Fichier optionel) :</label>
+        <input type="file" id="machines" name="fichier_machines" accept=".csv">
+
+        <label for="date">Entrez la date d'aujourd'hui (JJ/MM/AAAA):</label>
+        <input type="text" id="date" name="date_aujourdhui" placeholder="JJ/MM/AAAA" required>
+
+        <label for="periode">Vérifier les ventes sur :</label>
+        <select id="periode" name="periode">
+            <option value="jours">Jours</option>
+            <option value="semaine">Semaine</option>
+            <option value="mois">Mois</option>
+        </select>
+
+        <label for="valeur">Combien de jours/semaines/mois ? :</label>
+        <input type="text" id="valeur" name="valeur" placeholder="Entrez un nombre" required>
+
+        <label for="inclure_1_9">
+            <input type="checkbox" id="inclure_1_9" name="inclure_1_9"> Inclure les ventes de 1.9
+        </label>
+
+        <label for="join_machines">
+            <input type="checkbox" id="join_machines" name="join_machines"> Joindre avec le fichier des machines complètes
+        </label>
+
+        <button type="submit">Afficher le nombre de machines</button>
+    </form>
+
+    {% if nombre_machines %}
+    <div class="result-box">
+        <p><strong>{{ nombre_machines }}</strong> machines sélectionnées.</p>
+        <form action="{{ url_for('generer_csv') }}" method="POST">
+            <input type="hidden" name="date_aujourdhui" value="{{ date_aujourdhui }}">
+            <input type="hidden" name="periode" value="{{ periode }}">
+            <input type="hidden" name="valeur" value="{{ valeur }}">
+            <input type="hidden" name="inclure_1_9" value="{{ inclure_1_9 }}">
+            <input type="hidden" name="join_machines" value="{{ join_machines }}">
+            <button type="submit">Générer le fichier CSV</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<div class="footer">
+    <p>&copy; 2024 - Analyse des Machines - DistriProt</p>
+</div>
+
+<script>
+    function toggleMenu() {
+        const menu = document.getElementById('menu');
+        if (menu.style.display === 'block') {
+            menu.style.display = 'none';
+        } else {
+            menu.style.display = 'block';
+        }
+    }
+</script>
+
+</body>
+</html>
